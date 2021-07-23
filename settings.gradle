@@ -1,0 +1,2 @@
+rootProject.name = "Boiler SoundBoard"
+include ':app'
