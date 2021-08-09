@@ -1,152 +1,113 @@
 package ru.buba.boiler;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.GridLayout;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.Toast;
 
-import java.io.IOException;
+import androidx.annotation.NonNull;
+import androidx.annotation.RawRes;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.zip.Inflater;
 
 public class MainActivity extends AppCompatActivity {
 
-    Map<String, String> songMap;
+    Map<Integer, Integer> songMap;
 
-    ImageButton firstButton;
-    ImageButton secondButton;
-    Button thirdButton;
-    Button fourthButton;
-    Button fifthButton;
-    Button sixthButton;
-    Button seventhButton;
-    Button eighthButton;
-    Button ninthButton;
-
-    ImageView imageView;
-
-    GridLayout gridLayout;
+    ImageButton playButton;
+    ImageButton stopButton;
 
     ListView listView;
 
     long lastId = 0;
 
-    MediaPlayer mediaPlayer = null;
+    private MediaPlayer mediaPlayer = null;
+
+    public Toolbar toolbar;
+
+    public static int getId(String resourceName, Class<?> c) {
+        try {
+            Field idField = c.getDeclaredField(resourceName);
+            return idField.getInt(idField);
+        } catch (Exception e) {
+            throw new RuntimeException("No resource ID found for: "
+                    + resourceName + " / " + c, e);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        songMap = new HashMap<String, String>();
+        songMap = new HashMap<Integer, Integer>();
 
-        songMap.put("iamdrunk.mp3", "Я в говно");
-        songMap.put("idontlikefish.mp3", "Не любит рыбу");
-        songMap.put("narodmudr.mp3", "Мудрость");
-        songMap.put("narodmudrtwo.mp3", "Знание-сила");
-        songMap.put("sanya.mp3", "Санёк,брат...");
-        songMap.put("whoontheshpals.mp3", "Кто на шпалах?");
-        songMap.put("youaredegrod.mp3", "Ты деградируешь");
-        songMap.put("youarestupid.mp3", "Идиот");
-        songMap.put("zaebal.mp3", "Достал");
+        Field[] fields = R.raw.class.getFields();
+        ArrayList<Integer> arrayList = new ArrayList<>();
+        for(Field field : fields) {
+            try {
+                @RawRes int rawId = (Integer) field.get(null);
+                String name = field.getName();
+                        arrayList.add(this.getResources().getIdentifier(field.getName(), "raw",this.getPackageName()));
 
-//        gridLayout = findViewById(R.id.gridLayout);
-
-        ArrayList<String> arrayList = DirectoryProvider.listofRaw();
-        ArrayList<String> fileNames = new ArrayList<>();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
 
         for(int i = 0; i < arrayList.size(); i++) {
-            fileNames.add(songMap.get(arrayList.get(i)));
-            Toast.makeText(this, songMap.get(arrayList.get(i)),Toast.LENGTH_SHORT).show();
+            songMap.put(i, 1800000 + i);
         }
 
         listView = findViewById(R.id.listView);
+        toolbar = findViewById(R.id.toolbar);
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, fileNames);
+        setSupportActionBar(toolbar);
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, DirectoryProvider.listofRaw());
+
         listView.setAdapter(adapter);
-
         listView.setOnItemClickListener((parent, view, position, id) -> play(id));
-
-//        View.OnClickListener onClickListener = v -> {
-//            play(v);
-//        };
-
-//        for(int i = 0; i < arrayList.size(); i++) {
-//            Button button = new Button(this);
-//            button.setText(songMap.get(arrayList.get(i)));
-//            int finalI = i;
-//            button.setOnClickListener(new View.OnClickListener() {
-//                @Override
-//                public void onClick(View v) {
-//                    play(finalI);
-//                }
-//            });
-//            gridLayout.addView(button);
-//        }
 
         View.OnClickListener playOnClickListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 switch (v.getId()) {
-                    case R.id.button:
-                        pause(v);
-                        break;
-                    case R.id.button2:
+                    case R.id.playButton:
                         play(lastId);
+                        break;
+                    case R.id.stopButton:
+                        pause(v);
                         break;
                 }
             }
         };
 
 
-        firstButton = findViewById(R.id.button);
-        secondButton = findViewById(R.id.button2);
+        playButton = toolbar.findViewById(R.id.playButton);
+        stopButton = toolbar.findViewById(R.id.stopButton);
 
-        firstButton.setOnClickListener(playOnClickListener);
-        secondButton.setOnClickListener(playOnClickListener);
-//        thirdButton = findViewById(R.id.thirdButton);
-//        fourthButton = findViewById(R.id.fourthButton);
-//        fifthButton = findViewById(R.id.fifthButton);
-//        sixthButton = findViewById(R.id.sixthButton);
-//        seventhButton = findViewById(R.id.seventhButton);
-//        eighthButton = findViewById(R.id.eithButton);
-//        ninthButton = findViewById(R.id.ninthButton);
-
-//        imageView = findViewById(R.id.imageView);
-//        Bitmap bitmap = BitmapFactory.decodeResource(Resources.getSystem(), R.drawable.boiler);
-//        imageView.setImageBitmap(bitmap);
+        playButton.setOnClickListener(playOnClickListener);
+        stopButton.setOnClickListener(playOnClickListener);
 
         mediaPlayer = MediaPlayer.create(this, R.raw.sanya);
 
     }
-//    public void setCompletionListener(MediaPlayer mediaPlayer) {
-//        mediaPlayer.setOnCompletionListener(mp -> {
-//            stopPlayer();
-//            Toast.makeText(MainActivity.this, "MediaPlayer is null", Toast.LENGTH_LONG).show();
-//        });
-//    }
 
     public void play(long id) {
         boolean play = true;
+
         if (mediaPlayer != null)
             if (mediaPlayer.isPlaying()) {
                 if (lastId == id) {
@@ -157,55 +118,50 @@ public class MainActivity extends AppCompatActivity {
                     stopPlayer();
                 }
             } else {
-                if (lastId == id) {
-                    play = true;
-                } else {
+                if (lastId != id) {
                     lastId = id;
                     stopPlayer();
                 }
             }
+
         if (mediaPlayer == null) {
-            switch ((int) id) {
-//            switch (gridLayout.getChildAt()) {
-                case 0:
-                    mediaPlayer = MediaPlayer.create(this, R.raw.idontlikefish);
-                    break;
-                case 1:
-                    mediaPlayer = MediaPlayer.create(this, R.raw.whoontheshpals);
-                    break;
-                case 2:
-                    mediaPlayer = MediaPlayer.create(this, R.raw.youarestupid);
-                    break;
-                case 3:
-                    mediaPlayer = MediaPlayer.create(this, R.raw.zaebal);
-                    break;
-                case 4:
-                    mediaPlayer = MediaPlayer.create(this, R.raw.sanya);
-                    break;
-                case 5:
-                    mediaPlayer = MediaPlayer.create(this, R.raw.iamdrunk);
-                    break;
-                case 6:
-                    mediaPlayer = MediaPlayer.create(this, R.raw.youaredegrod);
-                    break;
-                case 7:
-                    mediaPlayer = MediaPlayer.create(this, R.raw.narodmudr);
-                    break;
-                case 8:
-                    mediaPlayer = MediaPlayer.create(this, R.raw.narodmudrtwo);
-                    break;
-                default:
-                    mediaPlayer = MediaPlayer.create(this, R.raw.zaebal);
+            mediaPlayer = MediaPlayer.create(this, songMap.get((int) id));
+//            switch ((int) id) {
+//                case 0:
+//                    mediaPlayer = MediaPlayer.create(this, R.raw.iamdrunk);
+//                    break;
+//                case 1:
+//                    mediaPlayer = MediaPlayer.create(this, R.raw.idontlikefish);
+//                    break;
+//                case 2:
+//                    mediaPlayer = MediaPlayer.create(this, R.raw.narodmudr);
+//                    break;
+//                case 3:
+//                    mediaPlayer = MediaPlayer.create(this, R.raw.narodmudrtwo);
+//                    break;
+//                case 4:
+//                    mediaPlayer = MediaPlayer.create(this, R.raw.sanya);
+//                    break;
+//                case 5:
+//                    mediaPlayer = MediaPlayer.create(this, R.raw.whoontheshpals);
+//                    break;
+//                case 6:
+//                    mediaPlayer = MediaPlayer.create(this, R.raw.youaredegrod);
+//                    break;
+//                case 7:
+//                    mediaPlayer = MediaPlayer.create(this, R.raw.youarestupid);
+//                    break;
+//                case 8:
+//                    mediaPlayer = MediaPlayer.create(this, R.raw.zaebal);
+//                    break;
+//                default:
+//                    mediaPlayer = MediaPlayer.create(this, R.raw.sanya);
+//                    break;
 //            }
-            }
         }
 
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                stopPlayer();
-            }
-        });
+
+        mediaPlayer.setOnCompletionListener(mp -> stopPlayer());
         if(play)
             mediaPlayer.start();
     }
@@ -215,15 +171,10 @@ public class MainActivity extends AppCompatActivity {
             mediaPlayer.pause();
     }
 
-    public void stop(View v) {
-        stopPlayer();
-    }
-
     private void stopPlayer() {
         if(mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
-//            Toast.makeText(this, "MediaPlayer is null", Toast.LENGTH_LONG).show();
         }
     }
 

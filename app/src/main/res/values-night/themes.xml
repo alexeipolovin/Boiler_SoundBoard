@@ -1,6 +1,12 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.BoilerSoundBoard" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <style name="Toolbar">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">?attr/actionBarSize</item>
+        <!-- <item name="theme">@style/ThemeOverlay.AppCompat.Dark.ActionBar</item> -->
+        <item name="android:background">@color/purple_700</item>
+    </style>
+    <style name="Theme.BoilerSoundBoard" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/purple_200</item>
         <item name="colorPrimaryVariant">@color/purple_700</item>

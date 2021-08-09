@@ -38,7 +38,7 @@ public class OldBoiler extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_old_boiler);
+        setContentView(R.layout.activity_main);
         Map<String, String> songMap;
 
 
