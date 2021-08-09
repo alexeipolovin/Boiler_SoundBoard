@@ -1,21 +1,32 @@
 package ru.buba.boiler;
 
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
+import android.app.DownloadManager;
 
-interface APIService {
-}
+import java.io.IOException;
+
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
 
 public class WebConnector {
-    private final Retrofit.Builder retrofit;
 
+    public static final MediaType JSON
+            = MediaType.get("application/json; charset=utf-8");
+    OkHttpClient httpClient = null;
     public WebConnector() {
-        retrofit = new Retrofit.Builder()
-                .baseUrl("https://barybians.ru/api/v2/boiler")
-                .addConverterFactory(GsonConverterFactory.create());
+        httpClient = new OkHttpClient();
     }
 
-    public void getInstance() {
-
+    void post(String url, String json, Callback callback) {
+        RequestBody requestBody = RequestBody.create(JSON, json);
+        Request request = new Request.Builder().url(url).post(requestBody).build();
+        httpClient.newCall(request).enqueue(callback);
+    }
+    void get(String url, String json, String token, Callback callback) {
+        RequestBody requestBody = RequestBody.create(JSON, json);
+        Request request = new Request.Builder().url(url).addHeader("Authorization", "Bearer " + token).get().build();
+        httpClient.newCall(request).enqueue(callback);
     }
 }

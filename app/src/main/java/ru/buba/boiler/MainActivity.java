@@ -3,37 +3,106 @@ package ru.buba.boiler;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RawRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import com.google.gson.JsonObject;
+
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.json.*;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
+
 public class MainActivity extends AppCompatActivity {
 
+    public static WebConnector webConnector;
     Map<Integer, Integer> songMap;
 
     ImageButton playButton;
     ImageButton stopButton;
 
+    static TextView textView;
+
     ListView listView;
 
     long lastId = 0;
 
+    private static String token;
+
     private MediaPlayer mediaPlayer = null;
 
-    public Toolbar toolbar;
+    public static Toolbar toolbar;
+
+    public static String baseAuthUrl = "https://barybians.ru/api/v2/auth?username=Test&password=TEST";
+    public static String baseSongListUrl = "https://barybians.ru/api/v2/boiler";
+
+    public void auth() {
+        webConnector = new WebConnector();
+        webConnector.post(baseAuthUrl, "", new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String responseBody = response.body().string();
+                String tokenBase = "";
+                Log.d("Boiler", responseBody);
+                JSONObject jsonObject;
+
+                try {
+                    jsonObject = new JSONObject(responseBody);
+                    tokenBase = jsonObject.getString("token");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                String finalToken = token;
+                token = tokenBase;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+//                        textView.setText(finalToken);
+                    }
+                });
+
+            }
+        });
+    }
+
+    public void getSongsList() {
+        webConnector.get(baseSongListUrl, "", token, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String responseBody = response.body().string();
+                Log.d("Boiler SongList", responseBody);
+            }
+        });
+    }
 
     public static int getId(String resourceName, Class<?> c) {
         try {
@@ -70,26 +139,33 @@ public class MainActivity extends AppCompatActivity {
             songMap.put(i, 1800000 + i);
         }
 
+
         listView = findViewById(R.id.listView);
         toolbar = findViewById(R.id.toolbar);
+        textView = toolbar.findViewById(R.id.toolbarText);
 
         setSupportActionBar(toolbar);
+        auth();
+        token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJCYXJ5YmlhbnMiLCJhdWQiOiIzNSIsImlhdCI6MTM1Njk5OTUyNCwibmJmIjoxMzU3MDAwMDAwfQ.Tjeta5peBDb8EKZkzDoHGXIo3uxHJ0SmS0aPUO_IzA0";
+        getSongsList();
 
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, DirectoryProvider.listofRaw());
 
         listView.setAdapter(adapter);
-        listView.setOnItemClickListener((parent, view, position, id) -> play(id));
+        listView.setOnItemClickListener((parent, view, position, id) -> playAsync());
 
         View.OnClickListener playOnClickListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 switch (v.getId()) {
                     case R.id.playButton:
-                        play(lastId);
+                        playAsync();
                         break;
                     case R.id.stopButton:
                         pause(v);
                         break;
+                    default:
+                        throw new IllegalStateException("Unexpected value: " + v.getId());
                 }
             }
         };
@@ -101,8 +177,36 @@ public class MainActivity extends AppCompatActivity {
         playButton.setOnClickListener(playOnClickListener);
         stopButton.setOnClickListener(playOnClickListener);
 
-        mediaPlayer = MediaPlayer.create(this, R.raw.sanya);
+//        mediaPlayer = MediaPlayer.create(this, R.raw.sanya);
 
+    }
+
+    void playAsync() {
+        mediaPlayer = MediaPlayer.create(this, R.raw.sanya);
+        mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+            public boolean onError(MediaPlayer mp, int what, int extra) {
+                mediaPlayer.reset();
+                return false;
+            }
+        });
+        mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+            public void onPrepared(MediaPlayer mp) {
+                mediaPlayer.start();
+            }
+        });
+        try {
+            mediaPlayer.setDataSource("https://barybians.ru/boiler/1626598850.mp3");
+            mediaPlayer.prepareAsync();
+        } catch (IllegalArgumentException e) {
+        } catch (IllegalStateException e) {
+        } catch (IOException e) {
+        }
+        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                mediaPlayer.release();
+            }
+        });
     }
 
     public void play(long id) {
