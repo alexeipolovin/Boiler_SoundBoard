@@ -13,18 +13,30 @@
 
 package ru.buba.boiler;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-public class DirectoryProvider {
+public class BoilerParse {
 
-    public static ArrayList<String> listofRaw() {
-        Field[] fields = R.raw.class.getFields();
-        ArrayList<String> list = new ArrayList<String>();
-        for (Field field : fields) {
-            list.add(field.getName()+ ".mp3");
-        }
-        return list;
+    private final String responseBody;
+
+    BoilerParse(String responseBody) {
+        this.responseBody = responseBody;
     }
 
+
+    public String getSongName() {
+        String songName = "";
+        try {
+            JSONObject jsonObject = new JSONObject(this.responseBody);
+            songName = jsonObject.getJSONObject("song").getString("name");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return songName;
+    }
+
+    public String getResponseBody() {
+        return responseBody;
+    }
 }

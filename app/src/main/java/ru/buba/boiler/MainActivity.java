@@ -1,3 +1,16 @@
+
+/*
+ * Copyright 2021 Alexei Polovin
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ *
+ */
+
 package ru.buba.boiler;
 
 import android.content.Intent;
@@ -17,15 +30,14 @@ import androidx.annotation.RawRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import com.google.gson.JsonObject;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.json.*;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -45,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
 
     long lastId = 0;
 
-    private static String token;
+    private String token;
 
     private MediaPlayer mediaPlayer = null;
 
@@ -71,17 +83,13 @@ public class MainActivity extends AppCompatActivity {
 
                 try {
                     jsonObject = new JSONObject(responseBody);
-                    tokenBase = jsonObject.getString("token");
+                    token = jsonObject.getString("token");
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-
-                String finalToken = token;
-                token = tokenBase;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-//                        textView.setText(finalToken);
                     }
                 });
 
@@ -90,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void getSongsList() {
-        webConnector.get(baseSongListUrl, "", token, new Callback() {
+        webConnector.get(baseSongListUrl, token, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
 
