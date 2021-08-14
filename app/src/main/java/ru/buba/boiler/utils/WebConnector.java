@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2021 Alexei Polovin
  *
@@ -11,7 +10,7 @@
  *
  */
 
-package ru.buba.boiler;
+package ru.buba.boiler.utils;
 
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -24,16 +23,18 @@ public class WebConnector {
     public static final MediaType JSON
             = MediaType.get("application/json; charset=utf-8");
     OkHttpClient httpClient = null;
+
     public WebConnector() {
         httpClient = new OkHttpClient();
     }
 
-    void post(String url, String json, Callback callback) {
+    public void post(String url, String json, Callback callback) {
         RequestBody requestBody = RequestBody.create(JSON, json);
         Request request = new Request.Builder().url(url).post(requestBody).build();
         httpClient.newCall(request).enqueue(callback);
     }
-    void get(String url, String token, Callback callback) {
+
+    public void get(String url, String token, Callback callback) {
         Request request = new Request.Builder().url(url).addHeader("Authorization", "Bearer " + token).get().build();
         httpClient.newCall(request).enqueue(callback);
     }

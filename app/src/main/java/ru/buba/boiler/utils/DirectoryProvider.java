@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2021 Alexei Polovin
  *
@@ -11,28 +10,22 @@
  *
  */
 
-package ru.buba.boiler;
+package ru.buba.boiler.utils;
 
-public class SongData {
-    private final int ID;
-    private final String name;
-    private final String timestamp;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 
-    SongData(int ID, String name, String timestamp) {
-        this.ID = ID;
-        this.name = name;
-        this.timestamp = timestamp;
+import ru.buba.boiler.R;
+
+public class DirectoryProvider {
+
+    public static ArrayList<String> listedRaw() {
+        Field[] fields = R.raw.class.getFields();
+        ArrayList<String> list = new ArrayList<String>();
+        for (Field field : fields) {
+            list.add(field.getName() + ".mp3");
+        }
+        return list;
     }
 
-    public int getID() {
-        return ID;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getTimestamp() {
-        return timestamp;
-    }
 }

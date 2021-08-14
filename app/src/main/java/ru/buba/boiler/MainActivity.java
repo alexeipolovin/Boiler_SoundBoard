@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2021 Alexei Polovin
  *
@@ -15,7 +14,9 @@ package ru.buba.boiler;
 
 import android.content.Intent;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -23,13 +24,15 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RawRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -42,6 +45,7 @@ import java.util.Map;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
+import ru.buba.boiler.utils.WebConnector;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -51,20 +55,31 @@ public class MainActivity extends AppCompatActivity {
     ImageButton playButton;
     ImageButton stopButton;
 
-    static TextView textView;
+    TextView textView;
+    TextView allTime;
+    TextView currTime;
+
+    SeekBar progressBar;
+
+    Handler handler = new Handler();
 
     ListView listView;
 
     long lastId = 0;
+    private static final int playButtonID = R.id.playButton;
+    private static final int stopButtonID = R.id.stopButton;
 
     private String token;
 
     private MediaPlayer mediaPlayer = null;
 
-    public static Toolbar toolbar;
+    public Toolbar toolbar;
 
     public static String baseAuthUrl = "https://barybians.ru/api/v2/auth?username=Test&password=TEST";
     public static String baseSongListUrl = "https://barybians.ru/api/v2/boiler";
+
+    private boolean intialStage = true;
+    private boolean playPause;
 
     public void auth() {
         webConnector = new WebConnector();
@@ -87,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+                getSongsList();
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -108,6 +124,22 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(Call call, Response response) throws IOException {
                 String responseBody = response.body().string();
                 Log.d("Boiler SongList", responseBody);
+                try {
+                    JSONArray jsonArray = new JSONArray(responseBody);
+                    ArrayList<String> arrayList = new ArrayList<>();
+                    for (int index = 0; index < jsonArray.length(); index++) {
+                        Log.d("Boiler", jsonArray.getJSONObject(index).getString("name"));
+                        arrayList.add(jsonArray.getJSONObject(index).getString("name"));
+                    }
+                    runOnUiThread(() -> {
+                        ArrayAdapter<String> adapter = new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, arrayList);
+
+                        listView.setAdapter(adapter);
+                    });
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
@@ -130,23 +162,11 @@ public class MainActivity extends AppCompatActivity {
 
         songMap = new HashMap<Integer, Integer>();
 
-        Field[] fields = R.raw.class.getFields();
-        ArrayList<Integer> arrayList = new ArrayList<>();
-        for(Field field : fields) {
-            try {
-                @RawRes int rawId = (Integer) field.get(null);
-                String name = field.getName();
-                        arrayList.add(this.getResources().getIdentifier(field.getName(), "raw",this.getPackageName()));
+        allTime = findViewById(R.id.allTime);
+        currTime = findViewById(R.id.currTime);
 
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        }
-
-        for(int i = 0; i < arrayList.size(); i++) {
-            songMap.put(i, 1800000 + i);
-        }
-
+        progressBar = findViewById(R.id.progressBar);
+        progressBar.setMax(100);
 
         listView = findViewById(R.id.listView);
         toolbar = findViewById(R.id.toolbar);
@@ -154,22 +174,15 @@ public class MainActivity extends AppCompatActivity {
 
         setSupportActionBar(toolbar);
         auth();
-        token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJCYXJ5YmlhbnMiLCJhdWQiOiIzNSIsImlhdCI6MTM1Njk5OTUyNCwibmJmIjoxMzU3MDAwMDAwfQ.Tjeta5peBDb8EKZkzDoHGXIo3uxHJ0SmS0aPUO_IzA0";
-        getSongsList();
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, DirectoryProvider.listofRaw());
-
-        listView.setAdapter(adapter);
-        listView.setOnItemClickListener((parent, view, position, id) -> playAsync());
 
         View.OnClickListener playOnClickListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 switch (v.getId()) {
-                    case R.id.playButton:
-                        playAsync();
+                    case playButtonID:
+                        play(0);
                         break;
-                    case R.id.stopButton:
+                    case stopButtonID:
                         pause(v);
                         break;
                     default:
@@ -182,39 +195,72 @@ public class MainActivity extends AppCompatActivity {
         playButton = toolbar.findViewById(R.id.playButton);
         stopButton = toolbar.findViewById(R.id.stopButton);
 
-        playButton.setOnClickListener(playOnClickListener);
+//        playButton.setOnClickListener(playOnClickListener);
         stopButton.setOnClickListener(playOnClickListener);
 
-//        mediaPlayer = MediaPlayer.create(this, R.raw.sanya);
+        playButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(mediaPlayer.isPlaying()) {
+                    handler.removeCallbacks(updater);
+                    mediaPlayer.pause();
+                } else {
+                    mediaPlayer.start();
+                     updateSeekBar();
+                }
+            }
+        });
+        prepareMediaPlayer();
+    }
+
+    Runnable updater = new Runnable() {
+        @Override
+        public void run() {
+            updateSeekBar();
+            long currentDuration =  mediaPlayer.getCurrentPosition();
+            currTime.setText(milisecToTimer(currentDuration));
+        }
+    };
+
+    void updateSeekBar() {
+        if(mediaPlayer.isPlaying()) {
+            progressBar.setProgress((int)((float) mediaPlayer.getCurrentPosition() / mediaPlayer.getDuration()) * 100);
+            handler.postDelayed(updater, 1000);
+        }
+    }
+
+    String milisecToTimer(long time) {
+        String timerString = "";
+        String secondsString;
+
+        int hours = (int) (time / ( 1000 * 60 * 60));
+        int minutes = (int) (time % (1000 * 60 * 60)) / (1000*60);
+        int seconds = (int) ((time % (1000 * 60 * 60)) % (1000*60) / 1000);
+
+        if(hours > 0) {
+            timerString = hours + ":";
+        }
+        if(seconds < 10) {
+            secondsString = "0" + seconds;
+        } else {
+            secondsString = "" + seconds;
+        }
+
+        timerString = timerString + minutes + ":" + secondsString;
+        return timerString;
 
     }
 
-    void playAsync() {
-        mediaPlayer = MediaPlayer.create(this, R.raw.sanya);
-        mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-            public boolean onError(MediaPlayer mp, int what, int extra) {
-                mediaPlayer.reset();
-                return false;
-            }
-        });
-        mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-            public void onPrepared(MediaPlayer mp) {
-                mediaPlayer.start();
-            }
-        });
+    void prepareMediaPlayer() {
         try {
-            mediaPlayer.setDataSource("https://barybians.ru/boiler/1626598850.mp3");
-            mediaPlayer.prepareAsync();
-        } catch (IllegalArgumentException e) {
-        } catch (IllegalStateException e) {
+//            mediaPlayer.setDataSource("http://infinityandroid.com/music/good_times.mp3");
+//            mediaPlayer.prepare();
+            mediaPlayer = MediaPlayer.create(this, Uri.parse("https://barybians.ru/boiler/1626598850.mp3"));
+            mediaPlayer.prepare();
+            allTime.setText(milisecToTimer(mediaPlayer.getDuration()));
         } catch (IOException e) {
+            Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG);
         }
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                mediaPlayer.release();
-            }
-        });
     }
 
     public void play(long id) {
@@ -274,17 +320,17 @@ public class MainActivity extends AppCompatActivity {
 
 
         mediaPlayer.setOnCompletionListener(mp -> stopPlayer());
-        if(play)
+        if (play)
             mediaPlayer.start();
     }
 
     public void pause(View v) {
-        if(mediaPlayer != null)
+        if (mediaPlayer != null)
             mediaPlayer.pause();
     }
 
     private void stopPlayer() {
-        if(mediaPlayer != null) {
+        if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
         }
@@ -308,4 +354,5 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
         return super.onOptionsItemSelected(item);
     }
+
 }

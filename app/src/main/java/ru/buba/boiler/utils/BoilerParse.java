@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2021 Alexei Polovin
  *
@@ -11,7 +10,7 @@
  *
  */
 
-package ru.buba.boiler;
+package ru.buba.boiler.utils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
