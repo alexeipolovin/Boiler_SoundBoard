@@ -14,14 +14,11 @@ package ru.buba.boiler;
 
 import android.content.Intent;
 import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.SeekBar;
@@ -32,19 +29,13 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Response;
+import ru.buba.boiler.utils.SongData;
 import ru.buba.boiler.utils.WebConnector;
 
 public class MainActivity extends AppCompatActivity {
@@ -69,80 +60,13 @@ public class MainActivity extends AppCompatActivity {
     private static final int playButtonID = R.id.playButton;
     private static final int stopButtonID = R.id.stopButton;
 
-    private String token;
-
-    private MediaPlayer mediaPlayer = null;
+    public MediaPlayer mediaPlayer;
 
     public Toolbar toolbar;
 
     public static String baseAuthUrl = "https://barybians.ru/api/v2/auth?username=Test&password=TEST";
     public static String baseSongListUrl = "https://barybians.ru/api/v2/boiler";
 
-    private boolean intialStage = true;
-    private boolean playPause;
-
-    public void auth() {
-        webConnector = new WebConnector();
-        webConnector.post(baseAuthUrl, "", new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String responseBody = response.body().string();
-                String tokenBase = "";
-                Log.d("Boiler", responseBody);
-                JSONObject jsonObject;
-
-                try {
-                    jsonObject = new JSONObject(responseBody);
-                    token = jsonObject.getString("token");
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                getSongsList();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                    }
-                });
-
-            }
-        });
-    }
-
-    public void getSongsList() {
-        webConnector.get(baseSongListUrl, token, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String responseBody = response.body().string();
-                Log.d("Boiler SongList", responseBody);
-                try {
-                    JSONArray jsonArray = new JSONArray(responseBody);
-                    ArrayList<String> arrayList = new ArrayList<>();
-                    for (int index = 0; index < jsonArray.length(); index++) {
-                        Log.d("Boiler", jsonArray.getJSONObject(index).getString("name"));
-                        arrayList.add(jsonArray.getJSONObject(index).getString("name"));
-                    }
-                    runOnUiThread(() -> {
-                        ArrayAdapter<String> adapter = new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, arrayList);
-
-                        listView.setAdapter(adapter);
-                    });
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
 
     public static int getId(String resourceName, Class<?> c) {
         try {
@@ -173,7 +97,10 @@ public class MainActivity extends AppCompatActivity {
         textView = toolbar.findViewById(R.id.toolbarText);
 
         setSupportActionBar(toolbar);
-        auth();
+        webConnector = new WebConnector();
+        webConnector.auth();
+        ArrayList<SongData> songDataArrayList= webConnector.getSongsList(this);
+        listView.setAdapter(webConnector.getAdapter());
 
         View.OnClickListener playOnClickListener = new View.OnClickListener() {
             @Override
@@ -253,10 +180,11 @@ public class MainActivity extends AppCompatActivity {
 
     void prepareMediaPlayer() {
         try {
-//            mediaPlayer.setDataSource("http://infinityandroid.com/music/good_times.mp3");
-//            mediaPlayer.prepare();
-            mediaPlayer = MediaPlayer.create(this, Uri.parse("https://barybians.ru/boiler/1626598850.mp3"));
+
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setDataSource("https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_700KB.mp3");
             mediaPlayer.prepare();
+            mediaPlayer.start();
             allTime.setText(milisecToTimer(mediaPlayer.getDuration()));
         } catch (IOException e) {
             Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG);
@@ -284,38 +212,6 @@ public class MainActivity extends AppCompatActivity {
 
         if (mediaPlayer == null) {
             mediaPlayer = MediaPlayer.create(this, songMap.get((int) id));
-//            switch ((int) id) {
-//                case 0:
-//                    mediaPlayer = MediaPlayer.create(this, R.raw.iamdrunk);
-//                    break;
-//                case 1:
-//                    mediaPlayer = MediaPlayer.create(this, R.raw.idontlikefish);
-//                    break;
-//                case 2:
-//                    mediaPlayer = MediaPlayer.create(this, R.raw.narodmudr);
-//                    break;
-//                case 3:
-//                    mediaPlayer = MediaPlayer.create(this, R.raw.narodmudrtwo);
-//                    break;
-//                case 4:
-//                    mediaPlayer = MediaPlayer.create(this, R.raw.sanya);
-//                    break;
-//                case 5:
-//                    mediaPlayer = MediaPlayer.create(this, R.raw.whoontheshpals);
-//                    break;
-//                case 6:
-//                    mediaPlayer = MediaPlayer.create(this, R.raw.youaredegrod);
-//                    break;
-//                case 7:
-//                    mediaPlayer = MediaPlayer.create(this, R.raw.youarestupid);
-//                    break;
-//                case 8:
-//                    mediaPlayer = MediaPlayer.create(this, R.raw.zaebal);
-//                    break;
-//                default:
-//                    mediaPlayer = MediaPlayer.create(this, R.raw.sanya);
-//                    break;
-//            }
         }
 
 
