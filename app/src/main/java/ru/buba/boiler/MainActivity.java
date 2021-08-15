@@ -16,32 +16,38 @@ import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import org.jetbrains.annotations.NotNull;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.io.IOException;
+import java.util.ArrayList;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
 import ru.buba.boiler.utils.SongData;
 import ru.buba.boiler.utils.WebConnector;
 
 public class MainActivity extends AppCompatActivity {
 
     public static WebConnector webConnector;
-    Map<Integer, Integer> songMap;
 
     ImageButton playButton;
     ImageButton stopButton;
@@ -56,27 +62,18 @@ public class MainActivity extends AppCompatActivity {
 
     ListView listView;
 
-    long lastId = 0;
     private static final int playButtonID = R.id.playButton;
     private static final int stopButtonID = R.id.stopButton;
 
     public MediaPlayer mediaPlayer;
+    Player player;
 
     public Toolbar toolbar;
 
     public static String baseAuthUrl = "https://barybians.ru/api/v2/auth?username=Test&password=TEST";
     public static String baseSongListUrl = "https://barybians.ru/api/v2/boiler";
+    private ArrayList<SongData> songDataArrayList;
 
-
-    public static int getId(String resourceName, Class<?> c) {
-        try {
-            Field idField = c.getDeclaredField(resourceName);
-            return idField.getInt(idField);
-        } catch (Exception e) {
-            throw new RuntimeException("No resource ID found for: "
-                    + resourceName + " / " + c, e);
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,7 +81,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        songMap = new HashMap<Integer, Integer>();
+
+        player = new Player(Player.PlayType.STREAM, "https://barybians.ru/boiler/timestamp.mp3");
 
         allTime = findViewById(R.id.allTime);
         currTime = findViewById(R.id.currTime);
@@ -98,23 +96,84 @@ public class MainActivity extends AppCompatActivity {
 
         setSupportActionBar(toolbar);
         webConnector = new WebConnector();
-        webConnector.auth();
-        ArrayList<SongData> songDataArrayList= webConnector.getSongsList(this);
+        webConnector.auth(this, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String responseBody = response.body().string();
+                String tokenBase = "";
+                Log.d("Boiler", responseBody);
+//                getSongsList(context);
+                JSONObject jsonObject;
+                try {
+                    jsonObject = new JSONObject(responseBody);
+                    String token = jsonObject.getString("token");
+                    webConnector.setToken(token);
+                    webConnector.getSongsList(MainActivity.this, new Callback() {
+                        @Override
+                        public void onFailure(@NotNull Call call, @NotNull IOException e) {
+
+                        }
+
+                        @Override
+                        public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                            String responseBody = response.body().string();
+                            Log.d("Boiler SongList", responseBody);
+                            try {
+                                songDataArrayList = new ArrayList<SongData>();
+                                JSONArray jsonArray = new JSONArray(responseBody);
+                                ArrayList<String> songNames = new ArrayList<>();
+                                for (int index = 0; index < jsonArray.length(); index++) {
+                                    Log.d("Boiler", jsonArray.getJSONObject(index).getString("name"));
+                                    songNames.add(jsonArray.getJSONObject(index).getString("name"));
+                                    SongData songData = new SongData(0, jsonArray.getJSONObject(index).getString("name"), jsonArray.getJSONObject(index).getString("mp3"));
+                                    songDataArrayList.add(songData);
+
+                                }
+                                ArrayAdapter<String> adapter = new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, songNames);
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        listView.setAdapter(adapter);
+                                        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                            @Override
+                                            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                                                if (songDataArrayList.get((int) id) != null) {
+                                                    player.stop();
+                                                    player.playAsync(songDataArrayList.get((int) id).getTimestamp());
+
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+//         songDataArrayList = webConnector.getAdapter();
         listView.setAdapter(webConnector.getAdapter());
 
-        View.OnClickListener playOnClickListener = new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                switch (v.getId()) {
-                    case playButtonID:
-                        play(0);
-                        break;
-                    case stopButtonID:
-                        pause(v);
-                        break;
-                    default:
-                        throw new IllegalStateException("Unexpected value: " + v.getId());
-                }
+        View.OnClickListener playOnClickListener = v -> {
+            switch (v.getId()) {
+                case playButtonID:
+                    break;
+                case stopButtonID:
+                    player.pause();
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + v.getId());
             }
         };
 
@@ -128,30 +187,29 @@ public class MainActivity extends AppCompatActivity {
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mediaPlayer.isPlaying()) {
+                if (player.isPlaying()) {
                     handler.removeCallbacks(updater);
-                    mediaPlayer.pause();
+                    player.pause();
                 } else {
-                    mediaPlayer.start();
-                     updateSeekBar();
+                    player.start();
+                    updateSeekBar();
                 }
             }
         });
-        prepareMediaPlayer();
     }
 
     Runnable updater = new Runnable() {
         @Override
         public void run() {
             updateSeekBar();
-            long currentDuration =  mediaPlayer.getCurrentPosition();
+            long currentDuration = player.getCurrentPosition();
             currTime.setText(milisecToTimer(currentDuration));
         }
     };
 
     void updateSeekBar() {
-        if(mediaPlayer.isPlaying()) {
-            progressBar.setProgress((int)((float) mediaPlayer.getCurrentPosition() / mediaPlayer.getDuration()) * 100);
+        if (player.isPlaying()) {
+            progressBar.setProgress((int) ((float) player.getCurrentPosition() / player.getDuration()) * 100);
             handler.postDelayed(updater, 1000);
         }
     }
@@ -160,14 +218,14 @@ public class MainActivity extends AppCompatActivity {
         String timerString = "";
         String secondsString;
 
-        int hours = (int) (time / ( 1000 * 60 * 60));
-        int minutes = (int) (time % (1000 * 60 * 60)) / (1000*60);
-        int seconds = (int) ((time % (1000 * 60 * 60)) % (1000*60) / 1000);
+        int hours = (int) (time / (1000 * 60 * 60));
+        int minutes = (int) (time % (1000 * 60 * 60)) / (1000 * 60);
+        int seconds = (int) ((time % (1000 * 60 * 60)) % (1000 * 60) / 1000);
 
-        if(hours > 0) {
+        if (hours > 0) {
             timerString = hours + ":";
         }
-        if(seconds < 10) {
+        if (seconds < 10) {
             secondsString = "0" + seconds;
         } else {
             secondsString = "" + seconds;
@@ -176,66 +234,6 @@ public class MainActivity extends AppCompatActivity {
         timerString = timerString + minutes + ":" + secondsString;
         return timerString;
 
-    }
-
-    void prepareMediaPlayer() {
-        try {
-
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setDataSource("https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_700KB.mp3");
-            mediaPlayer.prepare();
-            mediaPlayer.start();
-            allTime.setText(milisecToTimer(mediaPlayer.getDuration()));
-        } catch (IOException e) {
-            Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG);
-        }
-    }
-
-    public void play(long id) {
-        boolean play = true;
-
-        if (mediaPlayer != null)
-            if (mediaPlayer.isPlaying()) {
-                if (lastId == id) {
-                    mediaPlayer.pause();
-                    play = false;
-                } else {
-                    lastId = id;
-                    stopPlayer();
-                }
-            } else {
-                if (lastId != id) {
-                    lastId = id;
-                    stopPlayer();
-                }
-            }
-
-        if (mediaPlayer == null) {
-            mediaPlayer = MediaPlayer.create(this, songMap.get((int) id));
-        }
-
-
-        mediaPlayer.setOnCompletionListener(mp -> stopPlayer());
-        if (play)
-            mediaPlayer.start();
-    }
-
-    public void pause(View v) {
-        if (mediaPlayer != null)
-            mediaPlayer.pause();
-    }
-
-    private void stopPlayer() {
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-            mediaPlayer = null;
-        }
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        stopPlayer();
     }
 
     @Override

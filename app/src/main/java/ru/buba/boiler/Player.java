@@ -20,6 +20,14 @@ import java.io.IOException;
 
 public class Player {
 
+    public void pause() {
+        mediaPlayer.pause();
+    }
+
+    public void start() {
+        mediaPlayer.start();
+    }
+
     public enum PlayType {
         LOCAL,
         STREAM
@@ -39,6 +47,19 @@ public class Player {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    public void playAsync(String dataSource) {
+        try {
+            if(mediaPlayer == null) {
+                mediaPlayer = new MediaPlayer();
+            }
+            mediaPlayer.setDataSource(dataSource);
+            mediaPlayer.prepare();
+            mediaPlayer.start();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -71,7 +92,7 @@ public class Player {
             mediaPlayer.start();
     }
 
-    private void stop() {
+    public void stop() {
         if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
@@ -81,5 +102,17 @@ public class Player {
     private void pause(View v) {
         if (mediaPlayer != null)
             mediaPlayer.pause();
+    }
+
+    public boolean isPlaying() {
+        return mediaPlayer.isPlaying();
+    }
+
+    public int getDuration() {
+        return mediaPlayer.getDuration();
+    }
+
+    public int getCurrentPosition() {
+        return mediaPlayer.getCurrentPosition();
     }
 }

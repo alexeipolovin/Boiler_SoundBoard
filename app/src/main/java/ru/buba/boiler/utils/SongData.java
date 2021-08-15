@@ -17,7 +17,7 @@ public class SongData {
     private final String name;
     private final String timestamp;
 
-    SongData(int ID, String name, String timestamp) {
+    public SongData(int ID, String name, String timestamp) {
         this.ID = ID;
         this.name = name;
         this.timestamp = timestamp;

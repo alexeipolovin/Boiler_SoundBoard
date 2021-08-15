@@ -13,23 +13,15 @@
 package ru.buba.boiler.utils;
 
 import android.content.Context;
-import android.util.Log;
 import android.widget.ArrayAdapter;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
 import java.util.ArrayList;
 
-import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
 
 public class WebConnector {
@@ -55,57 +47,13 @@ public class WebConnector {
         httpClient = new OkHttpClient.Builder().addInterceptor(loggingInterceptor).build();
     }
 
-    public void auth() {
-        post(baseAuthUrl, "", new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String responseBody = response.body().string();
-                String tokenBase = "";
-                Log.d("Boiler", responseBody);
-                JSONObject jsonObject;
-                try {
-                    jsonObject = new JSONObject(responseBody);
-                    token = jsonObject.getString("token");
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+    public void auth(Context context, Callback callback) {
+        this.token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJCYXJ5YmlhbnMiLCJhdWQiOiIzNSIsImlhdCI6MTM1Njk5OTUyNCwibmJmIjoxMzU3MDAwMDAwfQ.Tjeta5peBDb8EKZkzDoHGXIo3uxHJ0SmS0aPUO_IzA0";
+        post(baseAuthUrl, "", callback);
     }
 
-    public ArrayList<SongData> getSongsList(Context context) {
-        get(baseSongListUrl, token, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String responseBody = response.body().string();
-                Log.d("Boiler SongList", responseBody);
-                try {
-                    JSONArray jsonArray = new JSONArray(responseBody);
-                    songNames = new ArrayList<>();
-                    songDataArrayList = new ArrayList<>();
-                    for (int index = 0; index < jsonArray.length(); index++) {
-                        Log.d("Boiler", jsonArray.getJSONObject(index).getString("name"));
-                        songNames.add(jsonArray.getJSONObject(index).getString("name"));
-                        SongData songData = new SongData(0, jsonArray.getJSONObject(index).getString("name"),jsonArray.getJSONObject(index).getString("mp3"));
-                        songDataArrayList.add(songData);
-
-                    }
-                    adapter = new ArrayAdapter<String>(context, android.R.layout.simple_list_item_1, songNames);
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+    public ArrayList<SongData> getSongsList(Context context, Callback callback) {
+        get(baseSongListUrl, token, callback);
         return songDataArrayList;
     }
 
@@ -130,5 +78,9 @@ public class WebConnector {
 
     public ArrayAdapter<String> getAdapter() {
         return adapter;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 }
