@@ -10,7 +10,7 @@
  *
  */
 
-package ru.buba.boiler;
+package ru.buba.boiler.utils;
 
 import android.content.Context;
 import android.media.MediaPlayer;

@@ -47,6 +47,10 @@ public class WebConnector {
         httpClient = new OkHttpClient.Builder().addInterceptor(loggingInterceptor).build();
     }
 
+    public void loginAuth(String url, Context context, Callback callback) {
+        post(url, "", callback);
+    }
+
     public void auth(Context context, Callback callback) {
         this.token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJCYXJ5YmlhbnMiLCJhdWQiOiIzNSIsImlhdCI6MTM1Njk5OTUyNCwibmJmIjoxMzU3MDAwMDAwfQ.Tjeta5peBDb8EKZkzDoHGXIo3uxHJ0SmS0aPUO_IzA0";
         post(baseAuthUrl, "", callback);

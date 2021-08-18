@@ -12,7 +12,7 @@
         android:columnCount="2"
         android:rowCount="5"
         android:useDefaultMargins="true"
-        tools:context=".MainActivity">
+        tools:context=".ui.MainActivity">
 
         <Button
             android:id="@+id/firstButton"

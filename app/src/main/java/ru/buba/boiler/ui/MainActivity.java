@@ -10,9 +10,11 @@
  *
  */
 
-package ru.buba.boiler;
+package ru.buba.boiler.ui;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
@@ -42,6 +44,8 @@ import java.util.ArrayList;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
+import ru.buba.boiler.utils.Player;
+import ru.buba.boiler.R;
 import ru.buba.boiler.utils.SongData;
 import ru.buba.boiler.utils.WebConnector;
 
@@ -239,13 +243,23 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         menu.add("OldBoiler");
+        menu.add("Exit");
         return super.onCreateOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        Intent intent = new Intent(this, OldBoiler.class);
-        startActivity(intent);
+        CharSequence title = item.getTitle();
+        if ("OldBoiler".equals(title)) {
+            Intent intent = new Intent(this, OldBoiler.class);
+            startActivity(intent);
+        } else if ("Exit".equals(title)) {
+            SharedPreferences sharedPreferences = getSharedPreferences("auth", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("token", "");
+            editor.apply();
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
