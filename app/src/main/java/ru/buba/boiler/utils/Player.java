@@ -56,8 +56,9 @@ public class Player {
                 mediaPlayer = new MediaPlayer();
             }
             mediaPlayer.setDataSource(dataSource);
-            mediaPlayer.prepare();
-            mediaPlayer.start();
+            mediaPlayer.prepareAsync();
+            mediaPlayer.setOnPreparedListener(mp -> mediaPlayer.start());
+
         } catch (IOException e) {
             e.printStackTrace();
         }

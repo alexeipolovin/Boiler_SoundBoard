@@ -28,6 +28,7 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -120,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
                     webConnector.getSongsList(MainActivity.this, new Callback() {
                         @Override
                         public void onFailure(@NotNull Call call, @NotNull IOException e) {
-
+                            Toast.makeText(MainActivity.this, "Error in http response", Toast.LENGTH_LONG).show();
                         }
 
                         @Override
@@ -166,7 +167,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-//         songDataArrayList = webConnector.getAdapter();
         listView.setAdapter(webConnector.getAdapter());
 
         View.OnClickListener playOnClickListener = v -> {
@@ -185,7 +185,6 @@ public class MainActivity extends AppCompatActivity {
         playButton = toolbar.findViewById(R.id.playButton);
         stopButton = toolbar.findViewById(R.id.stopButton);
 
-//        playButton.setOnClickListener(playOnClickListener);
         stopButton.setOnClickListener(playOnClickListener);
 
         playButton.setOnClickListener(new View.OnClickListener() {
