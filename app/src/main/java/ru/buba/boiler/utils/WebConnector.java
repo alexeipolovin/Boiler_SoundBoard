@@ -52,6 +52,7 @@ public class WebConnector {
     }
 
     public void auth(Context context, Callback callback) {
+        // TODO: Исправить на постоянное обновления токена
         this.token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJCYXJ5YmlhbnMiLCJhdWQiOiIzNSIsImlhdCI6MTM1Njk5OTUyNCwibmJmIjoxMzU3MDAwMDAwfQ.Tjeta5peBDb8EKZkzDoHGXIo3uxHJ0SmS0aPUO_IzA0";
         post(baseAuthUrl, "", callback);
     }

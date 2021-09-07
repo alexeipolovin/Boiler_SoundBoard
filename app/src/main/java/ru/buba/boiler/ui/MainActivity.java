@@ -242,6 +242,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         menu.add("OldBoiler");
+        menu.add("Downloader");
         menu.add("Exit");
         return super.onCreateOptionsMenu(menu);
     }
@@ -257,6 +258,9 @@ public class MainActivity extends AppCompatActivity {
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putString("token", "");
             editor.apply();
+        } else if ("Downloader".equals(title)) {
+            Intent intent = new Intent(this, Downloader.class);
+            startActivity(intent);
         }
 
         return super.onOptionsItemSelected(item);

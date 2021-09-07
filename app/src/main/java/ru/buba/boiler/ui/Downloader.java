@@ -12,11 +12,16 @@
 
 package ru.buba.boiler.ui;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import org.jetbrains.annotations.NotNull;
@@ -31,13 +36,15 @@ import ru.buba.boiler.utils.WebConnector;
 
 public class Downloader extends AppCompatActivity {
 
+    Spinner spinner;
+    Button button;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.downloader);
 
-        Button button = findViewById(R.id.downloadButton);
-        ListView listView = findViewById(R.id.downloaderListView);
+        button = findViewById(R.id.downloadButton);
+        spinner = findViewById(R.id.spinner);
 
         WebConnector webConnector = new WebConnector();
 
@@ -49,12 +56,26 @@ public class Downloader extends AppCompatActivity {
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                try {
-                    listView.setAdapter(webConnector.getAdapter());
-                } finally {
-                    Toast.makeText(Downloader.this, "Bad request", Toast.LENGTH_LONG).show();
-                }
             }
         });
+
+        button.setOnClickListener(v -> {
+            Intent intent = new Intent().setType("*/*").setAction(Intent.ACTION_GET_CONTENT);
+            startActivityForResult(Intent.createChooser(intent, "Select a file"), 123);
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == 123 && resultCode == RESULT_OK) {
+            Uri selectedFile = null;
+            if (data != null) {
+                selectedFile = data.getData();
+                Toast.makeText(this,  selectedFile.getPath(), Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "Error in selecting file", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }
